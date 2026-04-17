@@ -1281,37 +1281,48 @@ function toggleFaq(el) {
   el.nextElementSibling.classList.toggle('open');
 }
 
-// Newsletter form
+// Newsletter API endpoint — update this after deploying the backend
+const NEWSLETTER_API = 'https://newsletter.eatcookjoy-uae.com';
+
+// Newsletter form — double opt-in
 function handleNewsletter(e) {
   e.preventDefault();
   const email = document.getElementById('newsletterEmail').value;
-  if (email) {
-    // Send to email collection endpoint
+  const form = document.getElementById('newsletterForm');
+  const success = document.getElementById('newsletterSuccess');
+  const btn = form.querySelector('button[type="submit"]');
+
+  if (!email) return;
+
+  btn.disabled = true;
+  btn.textContent = 'Subscribing...';
+
+  fetch(NEWSLETTER_API + '/api/subscribe', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  })
+  .then(res => res.json())
+  .then(data => {
+    form.style.display = 'none';
+    success.innerHTML = '&#10004; ' + (data.message || 'Please check your email to confirm your subscription.');
+    success.style.display = 'block';
+  })
+  .catch(() => {
+    // Fallback: Formspree if backend is down
     const formData = new FormData();
     formData.append('email', email);
     formData.append('source', 'eatcookjoy-uae.com');
-    formData.append('type', 'daily_newsletter');
-
-    // Try sending to formspree or similar
     fetch('https://formspree.io/f/xpwzgvqk', {
       method: 'POST',
       body: formData,
       headers: { 'Accept': 'application/json' }
-    }).then(response => {
-      if (response.ok) {
-        document.getElementById('newsletterForm').style.display = 'none';
-        document.getElementById('newsletterSuccess').style.display = 'block';
-      }
-    }).catch(() => {
-      // Fallback: still show success and store locally
-      document.getElementById('newsletterForm').style.display = 'none';
-      document.getElementById('newsletterSuccess').style.display = 'block';
+    }).finally(() => {
+      form.style.display = 'none';
+      success.innerHTML = '&#10004; Thanks for subscribing! Please check your email to confirm.';
+      success.style.display = 'block';
     });
-
-    // Also try mailto fallback
-    document.getElementById('newsletterForm').style.display = 'none';
-    document.getElementById('newsletterSuccess').style.display = 'block';
-  }
+  });
 }
 
 // Smooth scroll for anchor links
